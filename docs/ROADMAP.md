@@ -20,7 +20,7 @@ This document outlines the phased development roadmap for DeskBuddy.
 * [x] Basic pet render container & lightweight placeholder visual.
 * [x] Primary monitor work-area positioning and skip-taskbar setup.
 * [x] Pet State Model & Rendering Foundation (Step 02: typed PetState, Zustand Pet store, static PetRenderer, dev state controls).
-* [ ] Initial Rive animation player integration (Step 03).
+* [x] Initial Rive animation player integration (Step 03: `@rive-app/react-canvas` integration, Rive adapter boundary, fallback renderer, asset contract).
 * [ ] Basic pet placement and desktop boundary management.
 
 ---

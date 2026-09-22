@@ -80,14 +80,18 @@ Pet Brain / System Event Triggers (Future)
                   ▼
              PetRenderer
                   │
+            Rive Adapter
+                  │
          ┌────────┴────────┐
          │                 │
-      Step 02           Step 03 (Future)
-     Static UI            Rive Adapter
+     Rive Runtime     Static Fallback
+  (deskbuddy.riv)    (StaticPetFallback)
 ```
 
 * **Pet Store (`usePetStore`)**: Holds domain state (`PetState`) and state setter (`setState`).
-* **Pet Renderer (`PetRenderer`)**: Subscribes to `PetState` via focused selector and renders visual representation. It contains no state transition logic.
+* **Pet Renderer (`PetRenderer`)**: Subscribes to `PetState` via focused selector and delegates rendering to the Rive adapter (`RivePetRenderer`).
+* **Rive Adapter**: Translates domain `PetState` into Rive state machine configurations while maintaining complete separation between application state and Rive runtime internals.
+* **Static Fallback (`StaticPetFallback`)**: Ensures DeskBuddy remains fully functional and visual if the `.riv` asset is missing or fails to initialize.
 
 ---
 
