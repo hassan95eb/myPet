@@ -61,3 +61,11 @@
 * **Context**: Desktop pet animations require state machines, smooth transitions, and lightweight vector rendering.
 * **Decision**: Plan Rive for pet state machine animation in Phase 1/2.
 * **Consequences**: High-performance 60fps vector animations with built-in state machine support and low memory overhead.
+
+---
+
+### ADR-009: Rive React Integration Boundary (Step 03)
+* **Status**: Accepted
+* **Context**: Rive rendering must be integrated into DeskBuddy without coupling application state or domain `PetState` to Rive runtime internals.
+* **Decision**: Adopt `@rive-app/react-canvas` (v4.34+) wrapped in a thin adapter layer (`riveAdapter.ts` + `RivePetRenderer`) behind the stable `PetRenderer` component interface. If the asset is missing or fails, render `StaticPetFallback`.
+* **Consequences**: Application domain (`PetState` in Zustand) remains 100% independent from Rive; asset loading failure never crashes the application; future `.riv` assets can be swapped cleanly.
