@@ -15,11 +15,12 @@ This document outlines the phased development roadmap for DeskBuddy.
 ---
 
 ## Phase 1: Desktop Pet Shell
-* Transparent, frameless, always-on-top window setup.
-* Draggable pet window with click-through / hit-testing capabilities.
-* Basic pet render container & placeholder animations.
-* Initial Rive animation player integration.
-* Basic pet placement and desktop boundary management.
+* [x] Transparent, frameless, always-on-top window setup.
+* [x] Draggable pet window shell with native drag regions.
+* [x] Basic pet render container & lightweight placeholder visual.
+* [x] Primary monitor work-area positioning and skip-taskbar setup.
+* [ ] Initial Rive animation player integration.
+* [ ] Basic pet placement and desktop boundary management.
 
 ---
 
