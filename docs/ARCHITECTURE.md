@@ -35,8 +35,8 @@ DeskBuddy is built on a clear separation of concerns between the native platform
                                v
 +-------------------------------------------------------------+
 |                REACT / TYPESCRIPT DOMAIN LAYER               |
-|  - App Shell / Dashboard UI     - Pet State                 |
-|  - Pet Brain / Event Bus        - Priority / Cooldown       |
+|  - App Shell / Dashboard UI     - Pet State Store (usePetStore)
+|  - Pet Brain / Event Bus        - Visual Adapters (PetRenderer)
 |  - Reaction Engine              - Personality Behavior      |
 +-------------------------------------------------------------+
 ```
@@ -53,7 +53,8 @@ To maintain predictable maintenance and resource consumption, responsibilities a
 * Hardware / platform abstraction answering the question: **"What happened on the operating system?"**
 
 ### React / TypeScript Layer owns:
-* User Interface & Pet animations / display.
+* User Interface & Pet animations / display (`PetRenderer`).
+* Domain Pet State (`PetState` / `usePetStore`).
 * Pet Brain and Reaction Engine decisions answering the question: **"How should the pet react to it?"**
 * Reaction priority, dialogue selection, cooldown management, and personality rules.
 * Application state management (Zustand).
@@ -64,7 +65,33 @@ To maintain predictable maintenance and resource consumption, responsibilities a
 
 ---
 
-## 4. Communication & Event-Driven Philosophy
+## 4. Pet State & Rendering Contract
+
+The Pet domain model and renderer are strictly decoupled:
+
+```text
+Pet Brain / System Event Triggers (Future)
+                  │
+                  ▼
+          usePetStore (PetState)
+                  │
+            Current State
+                  │
+                  ▼
+             PetRenderer
+                  │
+         ┌────────┴────────┐
+         │                 │
+      Step 02           Step 03 (Future)
+     Static UI            Rive Adapter
+```
+
+* **Pet Store (`usePetStore`)**: Holds domain state (`PetState`) and state setter (`setState`).
+* **Pet Renderer (`PetRenderer`)**: Subscribes to `PetState` via focused selector and renders visual representation. It contains no state transition logic.
+
+---
+
+## 5. Communication & Event-Driven Philosophy
 
 1. **Normalized Events Over Raw Data**: Rust emits structured, normalized events (e.g., `system://idle-changed`, `system://process-focused`) across the Tauri IPC boundary rather than raw OS blobs.
 2. **Event-Driven Over Polling**: Polling is strictly minimized or event-driven. Where OS notifications exist (e.g. OS hooks / signals), event callbacks are preferred over timer loops.
@@ -72,7 +99,7 @@ To maintain predictable maintenance and resource consumption, responsibilities a
 
 ---
 
-## 5. Resource Efficiency & Lifecycle Rules
+## 6. Resource Efficiency & Lifecycle Rules
 
 * **Idle Reduction**: Background monitoring throttles down when the user is idle or when the pet window is hidden.
 * **Cleanup Mandate**: Every event listener, timer, or subscription must return an explicit cleanup handler upon unmount or teardown.
@@ -81,7 +108,7 @@ To maintain predictable maintenance and resource consumption, responsibilities a
 
 ---
 
-## 6. Offline-First & Privacy Principles
+## 7. Offline-First & Privacy Principles
 
 * **Offline-First**: DeskBuddy relies on zero remote servers or cloud services. All core features run completely offline.
 * **Local Privacy**: System activity, process names, and user idle history remain strictly on the local machine. No analytics, tracking SDKs, or telemetry are included.

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { PetPlaceholder } from './features/pet/components/PetPlaceholder';
+import { PetWindowShell } from './features/pet/components/PetWindowShell';
 import { positionWindowBottomRight } from './features/pet/utils/windowPosition';
 
 export default function App() {
@@ -10,7 +10,7 @@ export default function App() {
 
   return (
     <main className="w-screen h-screen overflow-hidden flex items-center justify-center bg-transparent">
-      <PetPlaceholder />
+      <PetWindowShell />
     </main>
   );
 }
