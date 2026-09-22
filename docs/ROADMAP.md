@@ -4,7 +4,7 @@ This document outlines the phased development roadmap for DeskBuddy.
 
 ---
 
-## Phase 0: Foundation & Architecture (Current Phase)
+## Phase 0: Foundation & Architecture
 * [x] Tauri 2 + React + TypeScript + Vite foundation.
 * [x] Tailwind CSS v4 setup with `@tailwindcss/vite`.
 * [x] Zustand installation & clean project structure setup.
@@ -19,7 +19,8 @@ This document outlines the phased development roadmap for DeskBuddy.
 * [x] Draggable pet window shell with native drag regions.
 * [x] Basic pet render container & lightweight placeholder visual.
 * [x] Primary monitor work-area positioning and skip-taskbar setup.
-* [ ] Initial Rive animation player integration.
+* [x] Pet State Model & Rendering Foundation (Step 02: typed PetState, Zustand Pet store, static PetRenderer, dev state controls).
+* [ ] Initial Rive animation player integration (Step 03).
 * [ ] Basic pet placement and desktop boundary management.
 
 ---
