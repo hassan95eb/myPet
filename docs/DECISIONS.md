@@ -85,3 +85,11 @@
 * **Context**: Domain events emitted across the bus must be evaluated for pet reactions without directly mutating application state (`PetState`) or controlling Rive rendering.
 * **Decision**: Implement the Pet Brain as a pure domain function (`evaluatePetEvent`) mapping `DomainEvent` to transient `ReactionIntent` objects (`notice`, `curious`, `pleased`, `concerned`, `sleepy`, `attentive`). Connect it via `initPetBrainRuntime()` and `onReactionIntent()` without modifying Zustand `PetState` or Rive adapters.
 * **Consequences**: Complete decoupling between event evaluation (Pet Brain), execution rules (Reaction Engine - Step 06), and visual state (Zustand/Rive); 100% deterministic domain logic easily testable in plain TypeScript; zero background timers or polling overhead.
+
+---
+
+### ADR-012: First Production Reaction Engine (Step 06)
+* **Status**: Accepted
+* **Context**: Transient `ReactionIntent` objects produced by Pet Brain need an execution policy engine to determine whether/when they execute, how long they stay active, priority interruption rules, per-intent cooldowns, and resetting temporary states to `idle`.
+* **Decision**: Implement `createReactionEngine()` with explicit reaction definitions (`REACTION_DEFINITIONS`), simple numeric priorities (1=low, 2=normal, 3=high), bounded completion durations (null for persistent sleep), per-intent cooldown timestamps (recorded only on acceptance), and stale completion timer protection via unique reaction tokens. No reaction queue is used in V1 (unexecutable reactions are dropped).
+* **Consequences**: Deterministic reaction execution pipeline; Reaction Engine mutates `PetState` store without Pet Brain or Rive knowing execution details; strictly at most one active completion timer; zero background polling or continuous CPU consumption.
