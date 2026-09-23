@@ -26,8 +26,8 @@ This document outlines the phased development roadmap for DeskBuddy.
 ---
 
 ## Phase 2: Pet Brain & Reaction Engine
-* Event Bus architecture in TypeScript.
-* Reaction Engine with reaction queueing and priority levels.
+* [x] Event System & Domain Event Bus (Step 04: typed domain events, synchronous Domain Event Bus, dev event simulator).
+* Pet Brain & Reaction Engine with reaction queueing and priority levels (Step 05+).
 * Cooldown management and interruption rules.
 * Dialogue system and basic pet mood state machine.
 

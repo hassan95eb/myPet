@@ -13,32 +13,23 @@ Because DeskBuddy is meant to run continuously for long sessions (potentially en
 DeskBuddy is built on a clear separation of concerns between the native platform layer (Rust/Tauri) and the application domain/UI layer (React/TypeScript).
 
 ```text
-+-------------------------------------------------------------+
-|                      OPERATING SYSTEM                       |
-|           (Process Events, Network, Idle Status)            |
-+------------------------------+------------------------------+
-                               |
-                               v
-+-------------------------------------------------------------+
-|                  RUST NATIVE LAYER (Tauri)                  |
-|  - Process Monitoring (Future)  - Native Capabilities       |
-|  - Idle Detection (Future)      - Event Emission            |
-|  - Network Monitor (Future)     - System Call Abstraction   |
-+------------------------------+------------------------------+
-                               |
-                               v
-+-------------------------------------------------------------+
-|                     TAURI IPC BOUNDARY                      |
-|                  (Normalized System Events)                 |
-+------------------------------+------------------------------+
-                               |
-                               v
-+-------------------------------------------------------------+
-|                REACT / TYPESCRIPT DOMAIN LAYER               |
-|  - App Shell / Dashboard UI     - Pet State Store (usePetStore)
-|  - Pet Brain / Event Bus        - Visual Adapters (PetRenderer)
-|  - Reaction Engine              - Personality Behavior      |
-+-------------------------------------------------------------+
+Operating System (Future)
+      ↓
+Rust native monitors (Future)
+      ↓
+Normalized native/system events
+      ↓
+Tauri IPC transport (Future)
+      ↓
+Frontend transport adapter (Future)
+      ↓
+Domain Event Bus (Step 04)
+      ↓
+Pet Brain (Future - Step 05)
+      ↓
+Reaction Engine (Future)
+      ↓
+Pet State Store (usePetStore) / UI (PetRenderer)
 ```
 
 ---
@@ -95,11 +86,13 @@ Pet Brain / System Event Triggers (Future)
 
 ---
 
-## 5. Communication & Event-Driven Philosophy
+## 5. Domain Event Bus & Communication Architecture
 
-1. **Normalized Events Over Raw Data**: Rust emits structured, normalized events (e.g., `system://idle-changed`, `system://process-focused`) across the Tauri IPC boundary rather than raw OS blobs.
-2. **Event-Driven Over Polling**: Polling is strictly minimized or event-driven. Where OS notifications exist (e.g. OS hooks / signals), event callbacks are preferred over timer loops.
-3. **Deduplication at Source**: Rust native monitors filter out duplicate or identical system states before sending messages across the IPC bridge to avoid unnecessary React re-renders.
+1. **Transport-Independent Domain Events**: Domain events (`DomainEvent`) are strongly typed TypeScript discriminated unions (e.g., `application.opened`, `network.offline`, `user.idle`) decoupled from `@tauri-apps/*` or OS transport mechanisms.
+2. **In-Process Domain Event Bus**: A lightweight, synchronous event bus (`createDomainEventBus()`, singleton `domainEventBus`) routes events to matching subscribers.
+3. **Strict State & Brain Separation**: The Event Bus communicates facts. It is not application state (Zustand) and does not automatically mutate `PetState`. The future Pet Brain (Step 05) will subscribe to domain events to evaluate pet state transitions.
+4. **No History Retention or Polling**: The Event Bus maintains zero event history/logs to avoid memory growth during long desktop sessions, and runs purely synchronously with zero background timers or polling loops.
+5. **Deduplication at Source**: Rust native monitors (when introduced in future steps) filter out duplicate system states before sending messages across the IPC bridge.
 
 ---
 

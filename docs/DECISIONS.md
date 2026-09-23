@@ -69,3 +69,11 @@
 * **Context**: Rive rendering must be integrated into DeskBuddy without coupling application state or domain `PetState` to Rive runtime internals.
 * **Decision**: Adopt `@rive-app/react-canvas` (v4.34+) wrapped in a thin adapter layer (`riveAdapter.ts` + `RivePetRenderer`) behind the stable `PetRenderer` component interface. If the asset is missing or fails, render `StaticPetFallback`.
 * **Consequences**: Application domain (`PetState` in Zustand) remains 100% independent from Rive; asset loading failure never crashes the application; future `.riv` assets can be swapped cleanly.
+
+---
+
+### ADR-010: In-Process Strongly Typed Domain Event Bus (Step 04)
+* **Status**: Accepted
+* **Context**: Future system monitors (Rust/Tauri) and internal domain triggers need to communicate system signals to the Pet Brain without coupling to UI components, Zustand state, or transport mechanisms.
+* **Decision**: Implement a lightweight, strongly typed in-process Domain Event Bus (`createDomainEventBus()`) using TypeScript discriminated unions (`DomainEvent`). The bus is synchronous, transport-agnostic, retains zero event history, and operates with zero background polling or timers.
+* **Consequences**: Transport independence ensures events can originate from Rust IPC, frontend controls, or tests seamlessly; memory leaks are prevented by clean unsubscription functions and zero log retention; application state (`PetState`) remains separate from event transportation.

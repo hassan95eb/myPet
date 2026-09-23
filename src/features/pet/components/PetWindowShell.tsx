@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { PetRenderer } from './PetRenderer';
 import { PetDevControls } from './PetDevControls';
+import { EventSimulatorDevControl } from '../../dev/components/EventSimulatorDevControl';
 
 export function PetWindowShell(): React.ReactElement {
   const handleClose = useCallback(async (e: React.MouseEvent) => {
@@ -29,6 +30,9 @@ export function PetWindowShell(): React.ReactElement {
 
       {/* Pet State Dev Controls Dropdown */}
       <PetDevControls />
+
+      {/* Development Event Simulator Control */}
+      <EventSimulatorDevControl />
 
       {/* Main Pet Renderer */}
       <PetRenderer />
