@@ -1,10 +1,19 @@
-import React, { useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { PetRenderer } from './PetRenderer';
 import { PetDevControls } from './PetDevControls';
 import { EventSimulatorDevControl } from '../../dev/components/EventSimulatorDevControl';
+import { initPetBrainRuntime } from '../brain/pet-brain-runtime';
 
 export function PetWindowShell(): React.ReactElement {
+  useEffect(() => {
+    // Initialize Pet Brain runtime on application shell mount
+    const cleanupBrain = initPetBrainRuntime();
+    return () => {
+      cleanupBrain();
+    };
+  }, []);
+
   const handleClose = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {

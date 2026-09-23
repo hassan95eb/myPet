@@ -77,3 +77,11 @@
 * **Context**: Future system monitors (Rust/Tauri) and internal domain triggers need to communicate system signals to the Pet Brain without coupling to UI components, Zustand state, or transport mechanisms.
 * **Decision**: Implement a lightweight, strongly typed in-process Domain Event Bus (`createDomainEventBus()`) using TypeScript discriminated unions (`DomainEvent`). The bus is synchronous, transport-agnostic, retains zero event history, and operates with zero background polling or timers.
 * **Consequences**: Transport independence ensures events can originate from Rust IPC, frontend controls, or tests seamlessly; memory leaks are prevented by clean unsubscription functions and zero log retention; application state (`PetState`) remains separate from event transportation.
+
+---
+
+### ADR-011: Pet Brain & Reaction Intent Boundary (Step 05)
+* **Status**: Accepted
+* **Context**: Domain events emitted across the bus must be evaluated for pet reactions without directly mutating application state (`PetState`) or controlling Rive rendering.
+* **Decision**: Implement the Pet Brain as a pure domain function (`evaluatePetEvent`) mapping `DomainEvent` to transient `ReactionIntent` objects (`notice`, `curious`, `pleased`, `concerned`, `sleepy`, `attentive`). Connect it via `initPetBrainRuntime()` and `onReactionIntent()` without modifying Zustand `PetState` or Rive adapters.
+* **Consequences**: Complete decoupling between event evaluation (Pet Brain), execution rules (Reaction Engine - Step 06), and visual state (Zustand/Rive); 100% deterministic domain logic easily testable in plain TypeScript; zero background timers or polling overhead.

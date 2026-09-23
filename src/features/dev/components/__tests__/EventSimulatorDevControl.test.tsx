@@ -1,11 +1,20 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { EventSimulatorDevControl } from '../EventSimulatorDevControl';
 import { domainEventBus } from '../../../../core/events/domain-event-bus.instance';
+import { initPetBrainRuntime, cleanupPetBrainRuntime } from '../../../pet/brain/pet-brain-runtime';
 
 describe('EventSimulatorDevControl', () => {
+  let cleanupBrain: () => void;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    cleanupBrain = initPetBrainRuntime();
+  });
+
+  afterEach(() => {
+    cleanupBrain();
+    cleanupPetBrainRuntime();
   });
 
   it('renders simulator buttons in dev environment', () => {
@@ -49,12 +58,13 @@ describe('EventSimulatorDevControl', () => {
     );
   });
 
-  it('updates last event display upon event publication', () => {
+  it('updates last event display and brain intent upon event publication', () => {
     render(<EventSimulatorDevControl />);
 
     const idleBtn = screen.getByText('User Idle');
     fireEvent.click(idleBtn);
 
     expect(screen.getByText(/user\.idle/)).toBeInTheDocument();
+    expect(screen.getByText(/sleepy/)).toBeInTheDocument();
   });
 });

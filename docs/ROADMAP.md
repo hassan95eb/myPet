@@ -27,7 +27,8 @@ This document outlines the phased development roadmap for DeskBuddy.
 
 ## Phase 2: Pet Brain & Reaction Engine
 * [x] Event System & Domain Event Bus (Step 04: typed domain events, synchronous Domain Event Bus, dev event simulator).
-* Pet Brain & Reaction Engine with reaction queueing and priority levels (Step 05+).
+* [x] Pet Brain Foundation (Step 05: pure event evaluation, ReactionIntent model, brain runtime, dev simulator integration).
+* Reaction Engine with reaction queueing, priority levels, cooldowns, and interruption rules (Step 06+).
 * Cooldown management and interruption rules.
 * Dialogue system and basic pet mood state machine.
 
