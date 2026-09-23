@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { domainEventBus } from '../../../core/events/domain-event-bus.instance';
 import { DomainEvent, DomainEventType } from '../../../core/events/domain-event.types';
+import { onReactionIntent } from '../../pet/brain/pet-brain-runtime';
+import { ReactionIntent } from '../../pet/brain/reaction-intent.types';
 
 export function EventSimulatorDevControl(): React.ReactElement | null {
   const [appName, setAppName] = useState('Google Chrome');
   const [lastEvent, setLastEvent] = useState<string | null>(null);
+  const [lastIntent, setLastIntent] = useState<string | null>(null);
 
   useEffect(() => {
     if (!import.meta.env.DEV) {
@@ -32,10 +35,20 @@ export function EventSimulatorDevControl(): React.ReactElement | null {
       })
     );
 
+    const unsubIntent = onReactionIntent((intent: ReactionIntent) => {
+      let details = '';
+      if (intent.context?.applicationName) {
+        details = ` (${intent.context.applicationName})`;
+      }
+      setLastIntent(`${intent.type}${details}`);
+      console.debug('[Dev Event Simulator] Pet Brain ReactionIntent:', intent);
+    });
+
     return () => {
       for (const unsub of unsubscribes) {
         unsub();
       }
+      unsubIntent();
     };
   }, []);
 
@@ -130,9 +143,15 @@ export function EventSimulatorDevControl(): React.ReactElement | null {
         </button>
       </div>
 
-      <div className="mt-0.5 pt-1 border-t border-slate-800/80 text-[9px] text-slate-400 truncate">
-        <span className="text-slate-500">Last: </span>
-        <span className="text-indigo-300">{lastEvent || 'None'}</span>
+      <div className="mt-0.5 pt-1 border-t border-slate-800/80 text-[9px] text-slate-400 flex flex-col gap-0.5 truncate">
+        <div className="truncate">
+          <span className="text-slate-500">Last: </span>
+          <span className="text-indigo-300">{lastEvent || 'None'}</span>
+        </div>
+        <div className="truncate">
+          <span className="text-slate-500">Brain Intent: </span>
+          <span className="text-emerald-300 font-semibold">{lastIntent || 'None'}</span>
+        </div>
       </div>
     </div>
   );

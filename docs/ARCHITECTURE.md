@@ -25,9 +25,11 @@ Frontend transport adapter (Future)
       ↓
 Domain Event Bus (Step 04)
       ↓
-Pet Brain (Future - Step 05)
+Pet Brain (Step 05)
       ↓
-Reaction Engine (Future)
+Reaction Intent
+      ↓
+Reaction Engine (Future - Step 06)
       ↓
 Pet State Store (usePetStore) / UI (PetRenderer)
 ```
@@ -90,7 +92,7 @@ Pet Brain / System Event Triggers (Future)
 
 1. **Transport-Independent Domain Events**: Domain events (`DomainEvent`) are strongly typed TypeScript discriminated unions (e.g., `application.opened`, `network.offline`, `user.idle`) decoupled from `@tauri-apps/*` or OS transport mechanisms.
 2. **In-Process Domain Event Bus**: A lightweight, synchronous event bus (`createDomainEventBus()`, singleton `domainEventBus`) routes events to matching subscribers.
-3. **Strict State & Brain Separation**: The Event Bus communicates facts. It is not application state (Zustand) and does not automatically mutate `PetState`. The future Pet Brain (Step 05) will subscribe to domain events to evaluate pet state transitions.
+3. **Strict State & Brain Separation**: The Event Bus communicates facts. The Pet Brain (`evaluatePetEvent`) interprets domain events and produces transient `ReactionIntent` objects (`curious`, `notice`, `concerned`, `pleased`, `sleepy`, `attentive`). The Pet Brain does NOT mutate `PetState` or control Rive directly; execution policy and visual state changes belong strictly to the Reaction Engine (Step 06).
 4. **No History Retention or Polling**: The Event Bus maintains zero event history/logs to avoid memory growth during long desktop sessions, and runs purely synchronously with zero background timers or polling loops.
 5. **Deduplication at Source**: Rust native monitors (when introduced in future steps) filter out duplicate system states before sending messages across the IPC bridge.
 
