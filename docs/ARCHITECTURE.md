@@ -29,9 +29,11 @@ Pet Brain (Step 05)
       ↓
 Reaction Intent
       ↓
-Reaction Engine (Future - Step 06)
+Reaction Engine (Step 06)
       ↓
 Pet State Store (usePetStore) / UI (PetRenderer)
+      ↓
+Rive Adapter
 ```
 
 ---
@@ -48,7 +50,7 @@ To maintain predictable maintenance and resource consumption, responsibilities a
 ### React / TypeScript Layer owns:
 * User Interface & Pet animations / display (`PetRenderer`).
 * Domain Pet State (`PetState` / `usePetStore`).
-* Pet Brain and Reaction Engine decisions answering the question: **"How should the pet react to it?"**
+* Pet Brain and Reaction Engine decisions answering the question: **"How and when should the pet react to it?"**
 * Reaction priority, dialogue selection, cooldown management, and personality rules.
 * Application state management (Zustand).
 
@@ -63,7 +65,7 @@ To maintain predictable maintenance and resource consumption, responsibilities a
 The Pet domain model and renderer are strictly decoupled:
 
 ```text
-Pet Brain / System Event Triggers (Future)
+Pet Brain / Reaction Engine (Step 06)
                   │
                   ▼
           usePetStore (PetState)
@@ -88,13 +90,17 @@ Pet Brain / System Event Triggers (Future)
 
 ---
 
-## 5. Domain Event Bus & Communication Architecture
+## 5. Domain Event Bus, Pet Brain, & Reaction Engine Pipeline
 
 1. **Transport-Independent Domain Events**: Domain events (`DomainEvent`) are strongly typed TypeScript discriminated unions (e.g., `application.opened`, `network.offline`, `user.idle`) decoupled from `@tauri-apps/*` or OS transport mechanisms.
 2. **In-Process Domain Event Bus**: A lightweight, synchronous event bus (`createDomainEventBus()`, singleton `domainEventBus`) routes events to matching subscribers.
-3. **Strict State & Brain Separation**: The Event Bus communicates facts. The Pet Brain (`evaluatePetEvent`) interprets domain events and produces transient `ReactionIntent` objects (`curious`, `notice`, `concerned`, `pleased`, `sleepy`, `attentive`). The Pet Brain does NOT mutate `PetState` or control Rive directly; execution policy and visual state changes belong strictly to the Reaction Engine (Step 06).
-4. **No History Retention or Polling**: The Event Bus maintains zero event history/logs to avoid memory growth during long desktop sessions, and runs purely synchronously with zero background timers or polling loops.
-5. **Deduplication at Source**: Rust native monitors (when introduced in future steps) filter out duplicate system states before sending messages across the IPC bridge.
+3. **Pure Pet Brain Evaluation**: The Pet Brain (`evaluatePetEvent`) interprets domain events and produces transient `ReactionIntent` objects (`notice`, `curious`, `pleased`, `concerned`, `sleepy`, `attentive`). The Pet Brain does NOT mutate `PetState` or control Rive directly.
+4. **Deterministic Reaction Engine**: The Reaction Engine (`createReactionEngine()`) evaluates `ReactionIntent` against explicit `ReactionDefinition` rules:
+   - **Priorities**: Numeric levels (1 = low, 2 = normal, 3 = high). Higher-priority incoming reactions interrupt lower-priority active reactions; equal/lower priority incoming reactions are rejected.
+   - **Durations**: Bounded durations for temporary reactions (e.g., 1200ms–2000ms) returning `PetState` to `idle` upon completion; persistent reactions (`sleepy` → `sleeping`, `durationMs: null`) remain active until interrupted by a higher-priority reaction.
+   - **Cooldowns**: Per-intent cooldown timestamps prevent rapid re-triggering. Cooldowns are recorded only when a reaction is accepted.
+   - **Timer Safety**: At most one completion timer exists; old timers are cleared on interruption, and reaction token IDs guard against stale timer completion callbacks.
+5. **No History Retention or Polling**: The Event Bus and Reaction Engine maintain zero event history to avoid memory growth during long desktop sessions, and run purely on event dispatches with zero background polling loops.
 
 ---
 
@@ -102,7 +108,7 @@ Pet Brain / System Event Triggers (Future)
 
 * **Idle Reduction**: Background monitoring throttles down when the user is idle or when the pet window is hidden.
 * **Cleanup Mandate**: Every event listener, timer, or subscription must return an explicit cleanup handler upon unmount or teardown.
-* **Unbounded Memory Protection**: In-memory logs, reaction queues, and state histories MUST be capped with max length limits to prevent continuous session memory growth.
+* **Unbounded Memory Protection**: In-memory logs, reaction queues, and state histories MUST be capped with max length limits to prevent continuous session memory growth. In V1, no reaction queue is used (rejected intents are dropped).
 * **State Minimization**: Global Zustand state is kept minimal; components subscribe via focused selectors to prevent broad re-renders.
 
 ---

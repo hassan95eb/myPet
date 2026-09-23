@@ -3,14 +3,23 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { PetRenderer } from './PetRenderer';
 import { PetDevControls } from './PetDevControls';
 import { EventSimulatorDevControl } from '../../dev/components/EventSimulatorDevControl';
-import { initPetBrainRuntime } from '../brain/pet-brain-runtime';
+import { initPetBrainRuntime, onReactionIntent } from '../brain/pet-brain-runtime';
+import { reactionEngine } from '../reactions/reaction-engine.instance';
 
 export function PetWindowShell(): React.ReactElement {
   useEffect(() => {
     // Initialize Pet Brain runtime on application shell mount
     const cleanupBrain = initPetBrainRuntime();
+
+    // Wire Reaction Engine to receive ReactionIntents from Pet Brain
+    const unsubIntent = onReactionIntent((intent) => {
+      reactionEngine.handle(intent);
+    });
+
     return () => {
+      unsubIntent();
       cleanupBrain();
+      reactionEngine.dispose();
     };
   }, []);
 

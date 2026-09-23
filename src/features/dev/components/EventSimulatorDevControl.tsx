@@ -3,11 +3,15 @@ import { domainEventBus } from '../../../core/events/domain-event-bus.instance';
 import { DomainEvent, DomainEventType } from '../../../core/events/domain-event.types';
 import { onReactionIntent } from '../../pet/brain/pet-brain-runtime';
 import { ReactionIntent } from '../../pet/brain/reaction-intent.types';
+import { reactionEngine } from '../../pet/reactions/reaction-engine.instance';
+import { usePetStore } from '../../pet/model/pet.store';
 
 export function EventSimulatorDevControl(): React.ReactElement | null {
   const [appName, setAppName] = useState('Google Chrome');
   const [lastEvent, setLastEvent] = useState<string | null>(null);
   const [lastIntent, setLastIntent] = useState<string | null>(null);
+  const [lastReaction, setLastReaction] = useState<string | null>(null);
+  const petState = usePetStore((s) => s.state);
 
   useEffect(() => {
     if (!import.meta.env.DEV) {
@@ -44,11 +48,22 @@ export function EventSimulatorDevControl(): React.ReactElement | null {
       console.debug('[Dev Event Simulator] Pet Brain ReactionIntent:', intent);
     });
 
+    const unsubReaction = reactionEngine.onReactionHandled((result) => {
+      if (result.status === 'accepted') {
+        setLastReaction(`${result.intent} → ${result.petState}`);
+      } else {
+        const reasonText = result.reason === 'cooldown' ? 'cooldown' : 'lower priority';
+        setLastReaction(`${result.intent} → rejected (${reasonText})`);
+      }
+      console.debug('[Dev Event Simulator] Reaction Engine result:', result);
+    });
+
     return () => {
       for (const unsub of unsubscribes) {
         unsub();
       }
       unsubIntent();
+      unsubReaction();
     };
   }, []);
 
@@ -151,6 +166,14 @@ export function EventSimulatorDevControl(): React.ReactElement | null {
         <div className="truncate">
           <span className="text-slate-500">Brain Intent: </span>
           <span className="text-emerald-300 font-semibold">{lastIntent || 'None'}</span>
+        </div>
+        <div className="truncate">
+          <span className="text-slate-500">Reaction: </span>
+          <span className="text-amber-300 font-semibold">{lastReaction || 'None'}</span>
+        </div>
+        <div className="truncate">
+          <span className="text-slate-500">Pet State: </span>
+          <span className="text-cyan-300 font-semibold">{petState}</span>
         </div>
       </div>
     </div>
