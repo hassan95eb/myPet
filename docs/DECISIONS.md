@@ -93,3 +93,11 @@
 * **Context**: Transient `ReactionIntent` objects produced by Pet Brain need an execution policy engine to determine whether/when they execute, how long they stay active, priority interruption rules, per-intent cooldowns, and resetting temporary states to `idle`.
 * **Decision**: Implement `createReactionEngine()` with explicit reaction definitions (`REACTION_DEFINITIONS`), simple numeric priorities (1=low, 2=normal, 3=high), bounded completion durations (null for persistent sleep), per-intent cooldown timestamps (recorded only on acceptance), and stale completion timer protection via unique reaction tokens. No reaction queue is used in V1 (unexecutable reactions are dropped).
 * **Consequences**: Deterministic reaction execution pipeline; Reaction Engine mutates `PetState` store without Pet Brain or Rive knowing execution details; strictly at most one active completion timer; zero background polling or continuous CPU consumption.
+
+---
+
+### ADR-013: Native Application Monitoring Architecture (Step 07)
+* **Status**: Accepted
+* **Context**: DeskBuddy needs to observe desktop application lifecycle events (open/close) and route normalized facts into the domain pipeline without flooding the system with raw PIDs, child processes, or fake startup reactions.
+* **Decision**: Implement background application monitoring in Rust using `sysinfo` with a conservative 3-second polling interval and snapshot diffing against a startup baseline. Application presence is tracked via a `HashSet` of normalized application names (e.g., `chrome.exe` -> `"Google Chrome"`), filtering out `deskbuddy` self-processes and system daemons. Events are emitted over Tauri IPC (`native://application-opened`, `native://application-closed`) and translated by `initNativeApplicationEvents` directly onto `DomainEventBus`.
+* **Consequences**: Zero high-frequency CPU waste; robust multi-process noise suppression; startup baseline prevents a burst of fake reactions; local-only privacy (no URLs, window titles, or history stored); 100% decoupled frontend adapter safe for browser/unit testing.

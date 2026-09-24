@@ -13,15 +13,15 @@ Because DeskBuddy is meant to run continuously for long sessions (potentially en
 DeskBuddy is built on a clear separation of concerns between the native platform layer (Rust/Tauri) and the application domain/UI layer (React/TypeScript).
 
 ```text
-Operating System (Future)
+Operating System
       ↓
-Rust native monitors (Future)
+Rust Native Application Monitor (Step 07 - sysinfo background thread)
       ↓
-Normalized native/system events
+Normalized native events (`native://application-opened`, `native://application-closed`)
       ↓
-Tauri IPC transport (Future)
+Tauri IPC transport
       ↓
-Frontend transport adapter (Future)
+Frontend Native Event Adapter (Step 07 - `initNativeApplicationEvents`)
       ↓
 Domain Event Bus (Step 04)
       ↓
@@ -101,6 +101,16 @@ Pet Brain / Reaction Engine (Step 06)
    - **Cooldowns**: Per-intent cooldown timestamps prevent rapid re-triggering. Cooldowns are recorded only when a reaction is accepted.
    - **Timer Safety**: At most one completion timer exists; old timers are cleared on interruption, and reaction token IDs guard against stale timer completion callbacks.
 5. **No History Retention or Polling**: The Event Bus and Reaction Engine maintain zero event history to avoid memory growth during long desktop sessions, and run purely on event dispatches with zero background polling loops.
+
+---
+
+## 5.1 Native Application Monitoring (Step 07)
+
+* **Rust Monitor (`start_application_monitor`)**: A non-blocking background OS thread polls system processes every 3 seconds using `sysinfo`.
+* **Multi-Process Aggregation**: Applications are tracked as a `HashSet<String>` of unique normalized application names. Multiple subprocesses (e.g., 10 `chrome.exe` PIDs) yield a single `"Google Chrome"` presence entry, suppressing child-process noise.
+* **Startup Baseline**: On startup, DeskBuddy captures running applications as an initial baseline snapshot without emitting fake `application.opened` events.
+* **Name Normalization & Self-Filtering**: Converts process names (`chrome.exe` → `"Google Chrome"`), capitalizes unknown binary names, and excludes DeskBuddy's own executable (`deskbuddy`) and core OS background daemons.
+* **IPC & Frontend Adapter (`initNativeApplicationEvents`)**: Emits `native://application-opened` and `native://application-closed` over Tauri IPC. The frontend adapter validates payloads and publishes `application.opened` / `application.closed` directly to `DomainEventBus`.
 
 ---
 
