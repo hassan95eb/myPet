@@ -15,13 +15,13 @@ DeskBuddy is built on a clear separation of concerns between the native platform
 ```text
 Operating System
       ↓
-Rust Native Application Monitor (Step 07 - sysinfo background thread)
+Rust System Monitors (Application Monitor [Step 07] / Network Monitor [Step 08])
       ↓
-Normalized native events (`native://application-opened`, `native://application-closed`)
+Normalized native IPC events (`native://...`)
       ↓
 Tauri IPC transport
       ↓
-Frontend Native Event Adapter (Step 07 - `initNativeApplicationEvents`)
+Frontend Native Event Adapters (`initNativeApplicationEvents`, `initNativeNetworkEvents`)
       ↓
 Domain Event Bus (Step 04)
       ↓
@@ -111,6 +111,16 @@ Pet Brain / Reaction Engine (Step 06)
 * **Startup Baseline**: On startup, DeskBuddy captures running applications as an initial baseline snapshot without emitting fake `application.opened` events.
 * **Name Normalization & Self-Filtering**: Converts process names (`chrome.exe` → `"Google Chrome"`), capitalizes unknown binary names, and excludes DeskBuddy's own executable (`deskbuddy`) and core OS background daemons.
 * **IPC & Frontend Adapter (`initNativeApplicationEvents`)**: Emits `native://application-opened` and `native://application-closed` over Tauri IPC. The frontend adapter validates payloads and publishes `application.opened` / `application.closed` directly to `DomainEventBus`.
+
+---
+
+## 5.2 Native Network Connectivity Monitoring (Step 08)
+
+* **Rust Monitor (`start_network_monitor`)**: A non-blocking background thread checks OS-level network connectivity every 5 seconds without continuous public internet pings or external network traffic.
+* **Platform Implementations**: Uses OS APIs on Windows (`GetIsNetworkAvailable` / IP Helper) and Linux (`/proc/net/route` and `/sys/class/net/` carrier/operstate check) to detect whether usable network connectivity exists.
+* **Startup Baseline & Transition-Only Events**: Captures the initial startup network state as a baseline without emitting artificial events. Emits events over Tauri IPC (`native://network-online`, `native://network-offline`) strictly on confirmed state transitions.
+* **Unknown State Handling**: If network checks fail internally, the state is treated as `Unknown`, retaining the previous confirmed state without emitting events or adding `network.unknown` to the domain event model.
+* **IPC & Frontend Adapter (`initNativeNetworkEvents`)**: Emits clean Tauri events without metadata (IPs, SSIDs, or network history). The frontend adapter translates these into `network.online` and `network.offline` domain events on `DomainEventBus`.
 
 ---
 

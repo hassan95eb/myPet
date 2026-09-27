@@ -101,3 +101,11 @@
 * **Context**: DeskBuddy needs to observe desktop application lifecycle events (open/close) and route normalized facts into the domain pipeline without flooding the system with raw PIDs, child processes, or fake startup reactions.
 * **Decision**: Implement background application monitoring in Rust using `sysinfo` with a conservative 3-second polling interval and snapshot diffing against a startup baseline. Application presence is tracked via a `HashSet` of normalized application names (e.g., `chrome.exe` -> `"Google Chrome"`), filtering out `deskbuddy` self-processes and system daemons. Events are emitted over Tauri IPC (`native://application-opened`, `native://application-closed`) and translated by `initNativeApplicationEvents` directly onto `DomainEventBus`.
 * **Consequences**: Zero high-frequency CPU waste; robust multi-process noise suppression; startup baseline prevents a burst of fake reactions; local-only privacy (no URLs, window titles, or history stored); 100% decoupled frontend adapter safe for browser/unit testing.
+
+---
+
+### ADR-014: Native Network Connectivity Monitoring Architecture (Step 08)
+* **Status**: Accepted
+* **Context**: DeskBuddy needs to observe system network connectivity transitions (`network.online`, `network.offline`) to trigger pet reactions without generating continuous external internet traffic or spamming public servers.
+* **Decision**: Implement background network monitoring in Rust using OS-level connectivity APIs (Windows Win32 `GetIsNetworkAvailable` / IP Helper API and Linux `/proc/net/route` route/interface operstate inspection) with a 5-second interval. Maintain binary `Online`/`Offline` state with startup baseline capture and `Unknown` observation protection. Emit events over Tauri IPC (`native://network-online`, `native://network-offline`) strictly on confirmed state transitions, and translate them via `initNativeNetworkEvents` to `DomainEventBus`.
+* **Consequences**: Zero external network traffic / privacy preserved; no continuous polling from React/JS; false offline reactions avoided via unknown observation filtering and startup baseline; 100% decoupled native adapter safe for browser and unit testing environments.

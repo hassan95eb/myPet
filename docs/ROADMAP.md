@@ -36,7 +36,7 @@ This document outlines the phased development roadmap for DeskBuddy.
 
 ## Phase 3: System Awareness
 * [x] Rust native process monitoring (Step 07: application start/stop detection, presence aggregation, normalized name mapping, Tauri event transport, and frontend adapter).
-* Rust network connectivity monitor.
+* [x] Rust network connectivity monitor (Step 08: OS-level connectivity monitoring, binary online/offline state model, startup baseline capture, transition-only Tauri events, and frontend adapter).
 * Native user idle / return event detection.
 * Normalized Rust → Frontend event broadcasting over Tauri IPC bridge.
 
