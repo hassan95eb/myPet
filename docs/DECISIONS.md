@@ -109,3 +109,11 @@
 * **Context**: DeskBuddy needs to detect when the user becomes idle (5 minutes of inactivity) or active again, without capturing raw keystrokes, mouse positions, or input content, and without high-frequency polling.
 * **Decision**: Implement `user_idle_monitor` in Rust using Windows Win32 API (`GetLastInputInfo` + `GetTickCount64` via `windows-sys`). Check system idle duration every conservative 5-second interval against a centralized 5-minute threshold (`USER_IDLE_THRESHOLD`). Derive startup baseline without generating fake events. Emit transition-only Tauri events (`native://user-idle`, `native://user-active`) translated by frontend adapter `initNativeIdleEvents` directly into `user.idle` and `user.active` DomainEvents on `DomainEventBus`. Linux is gracefully unsupported (`Unknown` query result) without crashing or false events.
 * **Consequences**: Zero raw input/keystroke collection; strict privacy boundary; minimal CPU usage (<1%); robust transition-only event emissions; pure state machine transition evaluator decoupled from OS API and easily unit-tested.
+
+---
+
+### ADR-015: Personality System Foundation (Step 10)
+* **Status**: Accepted
+* **Context**: DeskBuddy needs a lightweight character model influencing how domain events are interpreted without turning the pet into a complex psychological simulation or introducing non-deterministic behavior.
+* **Decision**: Introduce a plain typed character configuration model (`PetPersonality`) with 3 normalized numeric traits (`curiosity`, `sociability`, `calmness` in `0.0..1.0`) and `DEFAULT_PERSONALITY` (`0.75`, `0.70`, `0.55`). Evolve `evaluatePetEvent(event, personality = DEFAULT_PERSONALITY)` and `initPetBrainRuntime(options?: PetBrainRuntimeOptions)` to evaluate events against personality thresholds. Keep evaluation pure, synchronous, and strictly deterministic without randomness, mood state, state mutation, persistence, or Zustand stores.
+* **Consequences**: PetBrain can now interpret events differently based on personality traits; default behavior remains 100% backward compatible; ReactionEngine, PetState, and native monitors remain personality-agnostic.

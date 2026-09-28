@@ -3,8 +3,18 @@ import { domainEventBus } from '../../../core/events/domain-event-bus.instance';
 import { DomainEvent, DomainEventType } from '../../../core/events/domain-event.types';
 import { evaluatePetEvent } from './pet-brain';
 import { ReactionIntent } from './reaction-intent.types';
+import {
+  PetPersonality,
+  DEFAULT_PERSONALITY,
+  normalizePersonality,
+} from '../personality';
 
 type IntentListener = (intent: ReactionIntent) => void;
+
+export interface PetBrainRuntimeOptions {
+  bus?: DomainEventBus;
+  personality?: PetPersonality;
+}
 
 const intentListeners = new Set<IntentListener>();
 let activeBus: DomainEventBus | null = null;
@@ -18,8 +28,25 @@ export function onReactionIntent(listener: IntentListener): () => void {
 }
 
 export function initPetBrainRuntime(
-  bus: DomainEventBus = domainEventBus
+  busOrOptions?: DomainEventBus | PetBrainRuntimeOptions
 ): () => void {
+  let bus: DomainEventBus = domainEventBus;
+  let personality: PetPersonality = DEFAULT_PERSONALITY;
+
+  if (busOrOptions) {
+    if ('subscribe' in busOrOptions && typeof busOrOptions.subscribe === 'function') {
+      bus = busOrOptions as DomainEventBus;
+    } else {
+      const opts = busOrOptions as PetBrainRuntimeOptions;
+      if (opts.bus) {
+        bus = opts.bus;
+      }
+      if (opts.personality) {
+        personality = normalizePersonality(opts.personality);
+      }
+    }
+  }
+
   // If already initialized on this bus, return cleanup function
   if (activeBus === bus && activeUnsubscribes.length > 0) {
     return cleanupPetBrainRuntime;
@@ -40,7 +67,7 @@ export function initPetBrainRuntime(
   ];
 
   const handleDomainEvent = (event: DomainEvent) => {
-    const intent = evaluatePetEvent(event);
+    const intent = evaluatePetEvent(event, personality);
     if (!intent) {
       return;
     }
