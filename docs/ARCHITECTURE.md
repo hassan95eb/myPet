@@ -26,7 +26,7 @@ Native Event Adapters (`initNativeApplicationEvents`, `initNativeIdleEvents`)
       ↓
 Domain Event Bus (`user.idle`, `user.active`, `application.opened`, etc.)
       ↓
-Pet Brain (pure event evaluation -> ReactionIntent)
+Pet Brain + Personality (Step 10: pure event evaluation + personality trait interpretation -> ReactionIntent)
       ↓
 Reaction Engine (priority & cooldown execution -> PetState)
       ↓
@@ -122,6 +122,25 @@ Pet Brain / Reaction Engine (Step 06)
 * **Transition-Only Emission**: Emits `native://user-idle` or `native://user-active` over Tauri IPC only when state actually transitions (`Active` → `Idle` or `Idle` → `Active`).
 * **Unknown / Error Resilience**: If an OS query fails (returns `Unknown`), DeskBuddy retains its previous confirmed state without emitting false events. On Linux/unsupported platforms, returns `Unknown` gracefully without crashing.
 * **IPC & Frontend Adapter (`initNativeIdleEvents`)**: Emits `native://user-idle` and `native://user-active` over Tauri IPC. The adapter publishes `user.idle` and `user.active` DomainEvents directly onto `DomainEventBus`.
+
+---
+
+## 5.3 Personality System Foundation (Step 10)
+
+* **Trait-Based Character Model**: Represents DeskBuddy's behavioral traits as a small typed interface (`PetPersonality`): `curiosity` (0.0..1.0), `sociability` (0.0..1.0), and `calmness` (0.0..1.0).
+* **Default Configuration**: `DEFAULT_PERSONALITY` is centralized (`curiosity: 0.75`, `sociability: 0.70`, `calmness: 0.55`) and frozen to ensure immutability.
+* **Normalization Boundary**: `normalizePersonality()` clamps finite numeric inputs to `[0.0, 1.0]` and falls back to `DEFAULT_PERSONALITY` values for undefined/non-finite trait inputs.
+* **PetBrain Evaluation Boundary**: `evaluatePetEvent(event, personality)` pure evaluator applies deterministic threshold rules:
+  - `application.opened`: `curiosity >= 0.40` yields `curious` intent; `< 0.40` yields `null` (ignored).
+  - `user.active`: `sociability >= 0.40` yields `attentive` intent; `< 0.40` yields less enthusiastic `notice` intent.
+  - `network.offline`: `calmness < 0.75` yields `concerned` intent; `>= 0.75` yields calmer `notice` intent.
+  - `application.closed` (`notice`), `network.online` (`pleased`), `user.idle` (`sleepy`) remain unchanged.
+* **Preservation of Default UX**: With `DEFAULT_PERSONALITY`, DeskBuddy produces identical reaction intents to previous steps, avoiding unexpected UX regressions.
+* **Strict Separation of Concerns**:
+  - **Personality ≠ PetState**: Personality is long-lived character traits, not current visual state.
+  - **Personality ≠ Mood**: Personality is persistent tendencies, not temporary emotional meters.
+  - **No Persistence / No Runtime Mutation / No Randomness**: Personality does not mutate during sessions, uses zero random generators (`Math.random()`), and does not introduce persistence or Zustand stores in Step 10.
+  - **ReactionEngine & Native Agnostic**: ReactionEngine, native monitors, and Rive adapters remain completely unaware of personality details.
 
 ---
 

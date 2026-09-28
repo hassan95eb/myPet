@@ -7,9 +7,10 @@ import {
 } from '../pet-brain-runtime';
 import { createDomainEventBus } from '../../../../core/events/domain-event-bus';
 import { usePetStore } from '../../model/pet.store';
+import { DEFAULT_PERSONALITY } from '../../personality';
 
-describe('PetBrain (evaluatePetEvent)', () => {
-  it('maps application.opened to curious intent with context', () => {
+describe('PetBrain (evaluatePetEvent) Default Behavior Regression', () => {
+  it('maps application.opened to curious intent with context using DEFAULT_PERSONALITY', () => {
     const event = {
       type: 'application.opened' as const,
       occurredAt: 1000,
@@ -25,7 +26,7 @@ describe('PetBrain (evaluatePetEvent)', () => {
     });
   });
 
-  it('maps application.closed to notice intent with context', () => {
+  it('maps application.closed to notice intent with context using DEFAULT_PERSONALITY', () => {
     const event = {
       type: 'application.closed' as const,
       occurredAt: 1000,
@@ -41,7 +42,7 @@ describe('PetBrain (evaluatePetEvent)', () => {
     });
   });
 
-  it('maps network.offline to concerned intent', () => {
+  it('maps network.offline to concerned intent using DEFAULT_PERSONALITY', () => {
     const intent = evaluatePetEvent({
       type: 'network.offline',
       occurredAt: 1000,
@@ -53,7 +54,7 @@ describe('PetBrain (evaluatePetEvent)', () => {
     });
   });
 
-  it('maps network.online to pleased intent', () => {
+  it('maps network.online to pleased intent using DEFAULT_PERSONALITY', () => {
     const intent = evaluatePetEvent({
       type: 'network.online',
       occurredAt: 1000,
@@ -65,7 +66,7 @@ describe('PetBrain (evaluatePetEvent)', () => {
     });
   });
 
-  it('maps user.idle to sleepy intent', () => {
+  it('maps user.idle to sleepy intent using DEFAULT_PERSONALITY', () => {
     const intent = evaluatePetEvent({
       type: 'user.idle',
       occurredAt: 1000,
@@ -77,7 +78,7 @@ describe('PetBrain (evaluatePetEvent)', () => {
     });
   });
 
-  it('maps user.active to attentive intent', () => {
+  it('maps user.active to attentive intent using DEFAULT_PERSONALITY', () => {
     const intent = evaluatePetEvent({
       type: 'user.active',
       occurredAt: 1000,
@@ -95,10 +96,109 @@ describe('PetBrain (evaluatePetEvent)', () => {
       occurredAt: 12345,
     };
 
-    const intent1 = evaluatePetEvent(event);
-    const intent2 = evaluatePetEvent(event);
+    const intent1 = evaluatePetEvent(event, DEFAULT_PERSONALITY);
+    const intent2 = evaluatePetEvent(event, DEFAULT_PERSONALITY);
 
     expect(intent1).toEqual(intent2);
+  });
+});
+
+describe('PetBrain Personality Influence', () => {
+  const eventAppOpened = {
+    type: 'application.opened' as const,
+    occurredAt: 1000,
+    payload: { applicationName: 'VS Code' },
+  };
+
+  const eventUserActive = {
+    type: 'user.active' as const,
+    occurredAt: 1000,
+  };
+
+  const eventNetworkOffline = {
+    type: 'network.offline' as const,
+    occurredAt: 1000,
+  };
+
+  describe('Curiosity', () => {
+    it('produces curious when curiosity >= 0.40', () => {
+      const intentHigh = evaluatePetEvent(eventAppOpened, {
+        curiosity: 0.8,
+        sociability: 0.7,
+        calmness: 0.55,
+      });
+      expect(intentHigh?.type).toBe('curious');
+
+      const intentBoundary = evaluatePetEvent(eventAppOpened, {
+        curiosity: 0.4,
+        sociability: 0.7,
+        calmness: 0.55,
+      });
+      expect(intentBoundary?.type).toBe('curious');
+    });
+
+    it('produces null when curiosity < 0.40', () => {
+      const intentLow = evaluatePetEvent(eventAppOpened, {
+        curiosity: 0.2,
+        sociability: 0.7,
+        calmness: 0.55,
+      });
+      expect(intentLow).toBeNull();
+    });
+  });
+
+  describe('Sociability', () => {
+    it('produces attentive when sociability >= 0.40', () => {
+      const intentHigh = evaluatePetEvent(eventUserActive, {
+        curiosity: 0.75,
+        sociability: 0.8,
+        calmness: 0.55,
+      });
+      expect(intentHigh?.type).toBe('attentive');
+
+      const intentBoundary = evaluatePetEvent(eventUserActive, {
+        curiosity: 0.75,
+        sociability: 0.4,
+        calmness: 0.55,
+      });
+      expect(intentBoundary?.type).toBe('attentive');
+    });
+
+    it('produces notice when sociability < 0.40', () => {
+      const intentLow = evaluatePetEvent(eventUserActive, {
+        curiosity: 0.75,
+        sociability: 0.2,
+        calmness: 0.55,
+      });
+      expect(intentLow?.type).toBe('notice');
+    });
+  });
+
+  describe('Calmness', () => {
+    it('produces concerned when calmness < 0.75', () => {
+      const intentNormal = evaluatePetEvent(eventNetworkOffline, {
+        curiosity: 0.75,
+        sociability: 0.7,
+        calmness: 0.5,
+      });
+      expect(intentNormal?.type).toBe('concerned');
+    });
+
+    it('produces notice when calmness >= 0.75', () => {
+      const intentHigh = evaluatePetEvent(eventNetworkOffline, {
+        curiosity: 0.75,
+        sociability: 0.7,
+        calmness: 0.9,
+      });
+      expect(intentHigh?.type).toBe('notice');
+
+      const intentBoundary = evaluatePetEvent(eventNetworkOffline, {
+        curiosity: 0.75,
+        sociability: 0.7,
+        calmness: 0.75,
+      });
+      expect(intentBoundary?.type).toBe('notice');
+    });
   });
 });
 
@@ -111,7 +211,7 @@ describe('PetBrain Runtime Integration', () => {
     cleanupPetBrainRuntime();
   });
 
-  it('subscribes to domain bus and emits ReactionIntent to listeners', () => {
+  it('subscribes to domain bus and emits ReactionIntent to listeners using default personality', () => {
     const bus = createDomainEventBus();
     const cleanupRuntime = initPetBrainRuntime(bus);
     const intentListener = vi.fn();
@@ -130,6 +230,32 @@ describe('PetBrain Runtime Integration', () => {
     });
 
     unsubIntent();
+    cleanupRuntime();
+  });
+
+  it('uses custom personality supplied in runtime options', () => {
+    const bus = createDomainEventBus();
+    const cleanupRuntime = initPetBrainRuntime({
+      bus,
+      personality: {
+        curiosity: 0.1, // low curiosity
+        sociability: 0.7,
+        calmness: 0.55,
+      },
+    });
+    const intentListener = vi.fn();
+
+    onReactionIntent(intentListener);
+
+    bus.publish({
+      type: 'application.opened',
+      occurredAt: Date.now(),
+      payload: { applicationName: 'Firefox' },
+    });
+
+    // Should NOT produce reaction because curiosity < 0.40
+    expect(intentListener).not.toHaveBeenCalled();
+
     cleanupRuntime();
   });
 

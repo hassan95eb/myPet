@@ -1,16 +1,23 @@
 import { DomainEvent } from '../../../core/events/domain-event.types';
 import { ReactionIntent } from './reaction-intent.types';
+import { PetPersonality, DEFAULT_PERSONALITY } from '../personality';
 
-export function evaluatePetEvent(event: DomainEvent): ReactionIntent | null {
+export function evaluatePetEvent(
+  event: DomainEvent,
+  personality: PetPersonality = DEFAULT_PERSONALITY
+): ReactionIntent | null {
   switch (event.type) {
     case 'application.opened':
-      return {
-        type: 'curious',
-        causedBy: event.type,
-        context: {
-          applicationName: event.payload.applicationName,
-        },
-      };
+      if (personality.curiosity >= 0.4) {
+        return {
+          type: 'curious',
+          causedBy: event.type,
+          context: {
+            applicationName: event.payload.applicationName,
+          },
+        };
+      }
+      return null;
 
     case 'application.closed':
       return {
@@ -22,8 +29,14 @@ export function evaluatePetEvent(event: DomainEvent): ReactionIntent | null {
       };
 
     case 'network.offline':
+      if (personality.calmness < 0.75) {
+        return {
+          type: 'concerned',
+          causedBy: event.type,
+        };
+      }
       return {
-        type: 'concerned',
+        type: 'notice',
         causedBy: event.type,
       };
 
@@ -40,8 +53,14 @@ export function evaluatePetEvent(event: DomainEvent): ReactionIntent | null {
       };
 
     case 'user.active':
+      if (personality.sociability >= 0.4) {
+        return {
+          type: 'attentive',
+          causedBy: event.type,
+        };
+      }
       return {
-        type: 'attentive',
+        type: 'notice',
         causedBy: event.type,
       };
 
