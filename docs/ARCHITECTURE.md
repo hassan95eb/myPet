@@ -15,21 +15,20 @@ DeskBuddy is built on a clear separation of concerns between the native platform
 ```text
 Operating System
       ↓
-Rust Native Application Monitor (Step 07 - sysinfo background thread)
-      ↓
-Normalized native events (`native://application-opened`, `native://application-closed`)
+Native Monitoring
+ ├── Application Monitor (`native://application-opened`, `native://application-closed`)
+ ├── Network Monitor (`native://network-online`, `native://network-offline`)
+ └── User Idle Monitor (`native://user-idle`, `native://user-active`)
       ↓
 Tauri IPC transport
       ↓
-Frontend Native Event Adapter (Step 07 - `initNativeApplicationEvents`)
+Native Event Adapters (`initNativeApplicationEvents`, `initNativeIdleEvents`)
       ↓
-Domain Event Bus (Step 04)
+Domain Event Bus (`user.idle`, `user.active`, `application.opened`, etc.)
       ↓
-Pet Brain (Step 05)
+Pet Brain (pure event evaluation -> ReactionIntent)
       ↓
-Reaction Intent
-      ↓
-Reaction Engine (Step 06)
+Reaction Engine (priority & cooldown execution -> PetState)
       ↓
 Pet State Store (usePetStore) / UI (PetRenderer)
       ↓
@@ -111,6 +110,18 @@ Pet Brain / Reaction Engine (Step 06)
 * **Startup Baseline**: On startup, DeskBuddy captures running applications as an initial baseline snapshot without emitting fake `application.opened` events.
 * **Name Normalization & Self-Filtering**: Converts process names (`chrome.exe` → `"Google Chrome"`), capitalizes unknown binary names, and excludes DeskBuddy's own executable (`deskbuddy`) and core OS background daemons.
 * **IPC & Frontend Adapter (`initNativeApplicationEvents`)**: Emits `native://application-opened` and `native://application-closed` over Tauri IPC. The frontend adapter validates payloads and publishes `application.opened` / `application.closed` directly to `DomainEventBus`.
+
+---
+
+## 5.2 Native User Idle / Active Monitoring (Step 09)
+
+* **Rust Idle Monitor (`start_user_idle_monitor`)**: A lightweight background thread queries elapsed system idle duration every conservative interval (`USER_IDLE_POLL_INTERVAL = 5s`).
+* **Windows API Strategy**: Uses `GetLastInputInfo` and `GetTickCount64` via `windows-sys` crate. Calculates elapsed millisecond idle duration with 32-bit wrapping arithmetic without installing global keyboard/mouse hooks or logging user keystrokes/movements.
+* **Centralized Threshold**: Uses a centralized product threshold constant (`USER_IDLE_THRESHOLD = 5 minutes`).
+* **Startup Baseline**: On startup, DeskBuddy queries initial OS idle duration and derives the baseline state (`Active` if < 5m, `Idle` if >= 5m) without emitting any startup events.
+* **Transition-Only Emission**: Emits `native://user-idle` or `native://user-active` over Tauri IPC only when state actually transitions (`Active` → `Idle` or `Idle` → `Active`).
+* **Unknown / Error Resilience**: If an OS query fails (returns `Unknown`), DeskBuddy retains its previous confirmed state without emitting false events. On Linux/unsupported platforms, returns `Unknown` gracefully without crashing.
+* **IPC & Frontend Adapter (`initNativeIdleEvents`)**: Emits `native://user-idle` and `native://user-active` over Tauri IPC. The adapter publishes `user.idle` and `user.active` DomainEvents directly onto `DomainEventBus`.
 
 ---
 

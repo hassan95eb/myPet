@@ -6,6 +6,7 @@ import { EventSimulatorDevControl } from '../../dev/components/EventSimulatorDev
 import { initPetBrainRuntime, onReactionIntent } from '../brain/pet-brain-runtime';
 import { reactionEngine } from '../reactions/reaction-engine.instance';
 import { initNativeApplicationEvents } from '../../../core/native/native-application-events';
+import { initNativeIdleEvents } from '../../../core/native/native-idle-events';
 
 export function PetWindowShell(): React.ReactElement {
   useEffect(() => {
@@ -13,7 +14,10 @@ export function PetWindowShell(): React.ReactElement {
     const cleanupBrain = initPetBrainRuntime();
 
     // Initialize Native Application Events listener
-    const cleanupNativeEvents = initNativeApplicationEvents();
+    const cleanupNativeAppEvents = initNativeApplicationEvents();
+
+    // Initialize Native User Idle / Active Events listener
+    const cleanupNativeIdleEvents = initNativeIdleEvents();
 
     // Wire Reaction Engine to receive ReactionIntents from Pet Brain
     const unsubIntent = onReactionIntent((intent) => {
@@ -22,7 +26,8 @@ export function PetWindowShell(): React.ReactElement {
 
     return () => {
       unsubIntent();
-      cleanupNativeEvents();
+      cleanupNativeIdleEvents();
+      cleanupNativeAppEvents();
       cleanupBrain();
       reactionEngine.dispose();
     };

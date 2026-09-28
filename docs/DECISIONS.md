@@ -101,3 +101,11 @@
 * **Context**: DeskBuddy needs to observe desktop application lifecycle events (open/close) and route normalized facts into the domain pipeline without flooding the system with raw PIDs, child processes, or fake startup reactions.
 * **Decision**: Implement background application monitoring in Rust using `sysinfo` with a conservative 3-second polling interval and snapshot diffing against a startup baseline. Application presence is tracked via a `HashSet` of normalized application names (e.g., `chrome.exe` -> `"Google Chrome"`), filtering out `deskbuddy` self-processes and system daemons. Events are emitted over Tauri IPC (`native://application-opened`, `native://application-closed`) and translated by `initNativeApplicationEvents` directly onto `DomainEventBus`.
 * **Consequences**: Zero high-frequency CPU waste; robust multi-process noise suppression; startup baseline prevents a burst of fake reactions; local-only privacy (no URLs, window titles, or history stored); 100% decoupled frontend adapter safe for browser/unit testing.
+
+---
+
+### ADR-014: Native User Idle / Active Detection Architecture (Step 09)
+* **Status**: Accepted
+* **Context**: DeskBuddy needs to detect when the user becomes idle (5 minutes of inactivity) or active again, without capturing raw keystrokes, mouse positions, or input content, and without high-frequency polling.
+* **Decision**: Implement `user_idle_monitor` in Rust using Windows Win32 API (`GetLastInputInfo` + `GetTickCount64` via `windows-sys`). Check system idle duration every conservative 5-second interval against a centralized 5-minute threshold (`USER_IDLE_THRESHOLD`). Derive startup baseline without generating fake events. Emit transition-only Tauri events (`native://user-idle`, `native://user-active`) translated by frontend adapter `initNativeIdleEvents` directly into `user.idle` and `user.active` DomainEvents on `DomainEventBus`. Linux is gracefully unsupported (`Unknown` query result) without crashing or false events.
+* **Consequences**: Zero raw input/keystroke collection; strict privacy boundary; minimal CPU usage (<1%); robust transition-only event emissions; pure state machine transition evaluator decoupled from OS API and easily unit-tested.
