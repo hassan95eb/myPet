@@ -26,7 +26,9 @@ Native Event Adapters (`initNativeApplicationEvents`, `initNativeIdleEvents`)
       ↓
 Domain Event Bus (`user.idle`, `user.active`, `application.opened`, etc.)
       ↓
-Pet Brain + Personality (Step 10: pure event evaluation + personality trait interpretation -> ReactionIntent)
+Behavior Context (`reduceBehaviorContext`)
+      ↓
+Pet Brain + Personality (Step 10/11: pure event evaluation + personality + context -> ReactionIntent)
       ↓
 Reaction Engine (priority & cooldown execution -> PetState)
       ↓
@@ -141,6 +143,15 @@ Pet Brain / Reaction Engine (Step 06)
   - **Personality ≠ Mood**: Personality is persistent tendencies, not temporary emotional meters.
   - **No Persistence / No Runtime Mutation / No Randomness**: Personality does not mutate during sessions, uses zero random generators (`Math.random()`), and does not introduce persistence or Zustand stores in Step 10.
   - **ReactionEngine & Native Agnostic**: ReactionEngine, native monitors, and Rive adapters remain completely unaware of personality details.
+
+---
+
+## 5.4 Behavior Context & Short-Term Memory Foundation (Step 11)
+
+* **Lightweight Session Model**: Tracks recent factual context (`BehaviorContext`) including `lastEventType`, `lastEventAt`, `lastApplicationName`, `recentApplicationOpenCount`, `recentApplicationWindowStartedAt`, `userPresence`, and `networkStatus`.
+* **Pure Reducer Logic**: Updates context via pure deterministic reducer `reduceBehaviorContext(context, event)` before `evaluatePetEvent` runs.
+* **Application Activity Window**: Tracks application open bursts within `APPLICATION_ACTIVITY_WINDOW_MS = 30_000ms`. When `curiosity >= 0.40`, opening >= 3 applications in 30 seconds triggers an `attentive` intent instead of `curious`.
+* **Runtime Ownership & Constant Memory**: Owned by PetBrain runtime session instances without global mutable stores, background timers, or memory leaks (O(1) memory footprint).
 
 ---
 

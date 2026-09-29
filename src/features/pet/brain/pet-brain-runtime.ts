@@ -8,6 +8,11 @@ import {
   DEFAULT_PERSONALITY,
   normalizePersonality,
 } from '../personality';
+import {
+  BehaviorContext,
+  createInitialBehaviorContext,
+  reduceBehaviorContext,
+} from '../behavior';
 
 type IntentListener = (intent: ReactionIntent) => void;
 
@@ -16,14 +21,16 @@ export interface PetBrainRuntimeOptions {
   personality?: PetPersonality;
 }
 
-const intentListeners = new Set<IntentListener>();
+const globalIntentListeners = new Set<IntentListener>();
 let activeBus: DomainEventBus | null = null;
 let activeUnsubscribes: Array<() => void> = [];
+let activeContext: BehaviorContext = createInitialBehaviorContext();
+let activePersonality: PetPersonality = DEFAULT_PERSONALITY;
 
 export function onReactionIntent(listener: IntentListener): () => void {
-  intentListeners.add(listener);
+  globalIntentListeners.add(listener);
   return () => {
-    intentListeners.delete(listener);
+    globalIntentListeners.delete(listener);
   };
 }
 
@@ -56,6 +63,8 @@ export function initPetBrainRuntime(
   cleanupPetBrainRuntime();
 
   activeBus = bus;
+  activePersonality = personality;
+  activeContext = createInitialBehaviorContext();
 
   const eventTypes: DomainEventType[] = [
     'application.opened',
@@ -67,12 +76,13 @@ export function initPetBrainRuntime(
   ];
 
   const handleDomainEvent = (event: DomainEvent) => {
-    const intent = evaluatePetEvent(event, personality);
+    activeContext = reduceBehaviorContext(activeContext, event);
+    const intent = evaluatePetEvent(event, activePersonality, activeContext);
     if (!intent) {
       return;
     }
 
-    const snapshot = Array.from(intentListeners);
+    const snapshot = Array.from(globalIntentListeners);
     for (const listener of snapshot) {
       listener(intent);
     }
@@ -91,4 +101,5 @@ export function cleanupPetBrainRuntime(): void {
   }
   activeUnsubscribes = [];
   activeBus = null;
+  activeContext = createInitialBehaviorContext();
 }

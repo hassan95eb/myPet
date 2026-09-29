@@ -30,6 +30,7 @@ This document outlines the phased development roadmap for DeskBuddy.
 * [x] Pet Brain Foundation (Step 05: pure event evaluation, ReactionIntent model, brain runtime, dev simulator integration).
 * [x] Reaction Engine Foundation (Step 06: initial production Reaction Engine with explicit definitions, numeric priorities, duration timers, stale timer safety, per-intent cooldowns, return to idle, persistent sleep, and zero Rive/native coupling).
 * [x] Personality System Foundation (Step 10: trait-based model with curiosity, sociability, calmness, deterministic PetBrain threshold evaluation, default behavior regression, no persistence or runtime mutation).
+* [x] Behavior Context & Short-Term Memory Foundation (Step 11: lightweight session context, pure reducer, 30s application activity window, runtime ownership, constant memory).
 * Cooldown management and interruption rules.
 * Dialogue system and basic pet mood state machine.
 
