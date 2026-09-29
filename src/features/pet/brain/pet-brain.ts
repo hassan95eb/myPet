@@ -1,16 +1,24 @@
 import { DomainEvent } from '../../../core/events/domain-event.types';
 import { ReactionIntent } from './reaction-intent.types';
 import { PetPersonality, DEFAULT_PERSONALITY } from '../personality';
+import {
+  BehaviorContext,
+  createInitialBehaviorContext,
+} from '../behavior';
 
 export function evaluatePetEvent(
   event: DomainEvent,
-  personality: PetPersonality = DEFAULT_PERSONALITY
+  personality: PetPersonality = DEFAULT_PERSONALITY,
+  context: BehaviorContext = createInitialBehaviorContext()
 ): ReactionIntent | null {
   switch (event.type) {
     case 'application.opened':
       if (personality.curiosity >= 0.4) {
+        const intentType =
+          context.recentApplicationOpenCount >= 3 ? 'attentive' : 'curious';
+
         return {
-          type: 'curious',
+          type: intentType,
           causedBy: event.type,
           context: {
             applicationName: event.payload.applicationName,

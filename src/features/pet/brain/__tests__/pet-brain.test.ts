@@ -8,6 +8,7 @@ import {
 import { createDomainEventBus } from '../../../../core/events/domain-event-bus';
 import { usePetStore } from '../../model/pet.store';
 import { DEFAULT_PERSONALITY } from '../../personality';
+import { createInitialBehaviorContext } from '../../behavior';
 
 describe('PetBrain (evaluatePetEvent) Default Behavior Regression', () => {
   it('maps application.opened to curious intent with context using DEFAULT_PERSONALITY', () => {
@@ -100,6 +101,50 @@ describe('PetBrain (evaluatePetEvent) Default Behavior Regression', () => {
     const intent2 = evaluatePetEvent(event, DEFAULT_PERSONALITY);
 
     expect(intent1).toEqual(intent2);
+  });
+});
+
+describe('PetBrain Behavior Context Influence', () => {
+  const eventAppOpened = {
+    type: 'application.opened' as const,
+    occurredAt: 1000,
+    payload: { applicationName: 'VS Code' },
+  };
+
+  it('returns curious when curiosity >= 0.40 and recentApplicationOpenCount < 3', () => {
+    const ctx = {
+      ...createInitialBehaviorContext(),
+      recentApplicationOpenCount: 2,
+    };
+    const intent = evaluatePetEvent(eventAppOpened, DEFAULT_PERSONALITY, ctx);
+    expect(intent).toEqual({
+      type: 'curious',
+      causedBy: 'application.opened',
+      context: { applicationName: 'VS Code' },
+    });
+  });
+
+  it('returns attentive when curiosity >= 0.40 and recentApplicationOpenCount >= 3', () => {
+    const ctx = {
+      ...createInitialBehaviorContext(),
+      recentApplicationOpenCount: 3,
+    };
+    const intent = evaluatePetEvent(eventAppOpened, DEFAULT_PERSONALITY, ctx);
+    expect(intent).toEqual({
+      type: 'attentive',
+      causedBy: 'application.opened',
+      context: { applicationName: 'VS Code' },
+    });
+  });
+
+  it('returns null when curiosity < 0.40 regardless of recentApplicationOpenCount', () => {
+    const lowCuriosity = { ...DEFAULT_PERSONALITY, curiosity: 0.2 };
+    const ctxHighCount = {
+      ...createInitialBehaviorContext(),
+      recentApplicationOpenCount: 5,
+    };
+    const intent = evaluatePetEvent(eventAppOpened, lowCuriosity, ctxHighCount);
+    expect(intent).toBeNull();
   });
 });
 
@@ -230,6 +275,82 @@ describe('PetBrain Runtime Integration', () => {
     });
 
     unsubIntent();
+    cleanupRuntime();
+  });
+
+  it('transitions from curious to attentive after 3 app open events in runtime sequence', () => {
+    const bus = createDomainEventBus();
+    const cleanupRuntime = initPetBrainRuntime(bus);
+    const intentListener = vi.fn();
+
+    onReactionIntent(intentListener);
+
+    bus.publish({
+      type: 'application.opened',
+      occurredAt: 0,
+      payload: { applicationName: 'App1' },
+    });
+    bus.publish({
+      type: 'application.opened',
+      occurredAt: 10000,
+      payload: { applicationName: 'App2' },
+    });
+    bus.publish({
+      type: 'application.opened',
+      occurredAt: 20000,
+      payload: { applicationName: 'App3' },
+    });
+
+    expect(intentListener).toHaveBeenCalledTimes(3);
+    expect(intentListener).toHaveBeenNthCalledWith(1, {
+      type: 'curious',
+      causedBy: 'application.opened',
+      context: { applicationName: 'App1' },
+    });
+    expect(intentListener).toHaveBeenNthCalledWith(2, {
+      type: 'curious',
+      causedBy: 'application.opened',
+      context: { applicationName: 'App2' },
+    });
+    expect(intentListener).toHaveBeenNthCalledWith(3, {
+      type: 'attentive',
+      causedBy: 'application.opened',
+      context: { applicationName: 'App3' },
+    });
+
+    cleanupRuntime();
+  });
+
+  it('resets window and returns curious after window resets (>= 30s)', () => {
+    const bus = createDomainEventBus();
+    const cleanupRuntime = initPetBrainRuntime(bus);
+    const intentListener = vi.fn();
+
+    onReactionIntent(intentListener);
+
+    bus.publish({
+      type: 'application.opened',
+      occurredAt: 0,
+      payload: { applicationName: 'App1' },
+    });
+    bus.publish({
+      type: 'application.opened',
+      occurredAt: 40000,
+      payload: { applicationName: 'App2' },
+    });
+
+    expect(intentListener).toHaveBeenCalledTimes(2);
+    expect(intentListener).toHaveBeenNthCalledWith(1, {
+      type: 'curious',
+      causedBy: 'application.opened',
+      context: { applicationName: 'App1' },
+    });
+    expect(intentListener).toHaveBeenNthCalledWith(2, {
+      type: 'curious',
+      causedBy: 'application.opened',
+      context: { applicationName: 'App2' },
+    });
+
     cleanupRuntime();
   });
 

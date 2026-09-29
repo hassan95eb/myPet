@@ -117,3 +117,11 @@
 * **Context**: DeskBuddy needs a lightweight character model influencing how domain events are interpreted without turning the pet into a complex psychological simulation or introducing non-deterministic behavior.
 * **Decision**: Introduce a plain typed character configuration model (`PetPersonality`) with 3 normalized numeric traits (`curiosity`, `sociability`, `calmness` in `0.0..1.0`) and `DEFAULT_PERSONALITY` (`0.75`, `0.70`, `0.55`). Evolve `evaluatePetEvent(event, personality = DEFAULT_PERSONALITY)` and `initPetBrainRuntime(options?: PetBrainRuntimeOptions)` to evaluate events against personality thresholds. Keep evaluation pure, synchronous, and strictly deterministic without randomness, mood state, state mutation, persistence, or Zustand stores.
 * **Consequences**: PetBrain can now interpret events differently based on personality traits; default behavior remains 100% backward compatible; ReactionEngine, PetState, and native monitors remain personality-agnostic.
+
+---
+
+### ADR-016: Behavior Context & Short-Term Memory Foundation (Step 11)
+* **Status**: Accepted
+* **Context**: PetBrain needs awareness of recent factual context (e.g., application activity frequency) to vary reactions without introducing complex state machines or unbounded history.
+* **Decision**: Introduce a lightweight `BehaviorContext` model (`lastEventType`, `lastEventAt`, `lastApplicationName`, `recentApplicationOpenCount`, `recentApplicationWindowStartedAt`, `userPresence`, `networkStatus`) and pure reducer `reduceBehaviorContext(context, event)`. Process context updates before `evaluatePetEvent` in runtime. Use a 30-second window threshold (`APPLICATION_ACTIVITY_WINDOW_MS = 30_000ms`) to transition `application.opened` from `curious` to `attentive` when >= 3 apps open in 30s.
+* **Consequences**: PetBrain evaluates events with recent context; zero background timers or memory leaks (O(1) memory); session-only lifetime with no persistence or React/Zustand state dependencies.
